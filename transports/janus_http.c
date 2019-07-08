@@ -107,6 +107,7 @@ static janus_transport_callbacks *gateway = NULL;
 static gboolean http_janus_api_enabled = FALSE;
 static gboolean http_admin_api_enabled = FALSE;
 static gboolean notify_events = TRUE;
+static gint http_long_poll_timeout = 30;
 
 /* JSON serialization options */
 static size_t json_format = JSON_INDENT(3) | JSON_PRESERVE_ORDER;
@@ -668,6 +669,12 @@ int janus_http_init(janus_transport_callbacks *callback, const char *config_path
 			JANUS_LOG(LOG_WARN, "Notification of events to handlers disabled for %s\n", JANUS_REST_NAME);
 		}
 
+		/* Get long poll timeout */
+		item = janus_config_get(config, config_general, janus_config_type_item, "long_poll_timeout");
+		if(item && item->value) {
+			http_long_poll_timeout = atoi(item->value);
+		}
+		
 		/* Check the base paths */
 		item = janus_config_get(config, config_general, janus_config_type_item, "base_path");
 		if(item && item->value) {
@@ -1814,7 +1821,7 @@ int janus_http_notifier(janus_transport_session *ts, janus_http_session *session
 	json_t *event = NULL, *list = NULL;
 	gboolean found = FALSE;
 	/* We have a timeout for the long poll: 30 seconds */
-	while(end-start < 30*G_USEC_PER_SEC) {
+	while(end-start < http_long_poll_timeout*G_USEC_PER_SEC) {
 		if(g_atomic_int_get(&session->destroyed))
 			break;
 		event = g_async_queue_try_pop(session->events);
