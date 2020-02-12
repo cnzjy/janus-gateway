@@ -339,20 +339,20 @@ function updateSettings() {
 							setLogLevel(result);
 						});
 					});
-				} else if(k === 'max_nack_queue') {
-					$('#'+k).append('<button id="' + k + '_button" type="button" class="btn btn-xs btn-primary">Edit max NACK queue</button>');
+				} else if(k === 'min_nack_queue') {
+					$('#'+k).append('<button id="' + k + '_button" type="button" class="btn btn-xs btn-primary">Edit min NACK queue</button>');
 					$('#'+k + "_button").click(function() {
-						bootbox.prompt("Set the new desired max NACK queue (a positive integer, currently " + settings["max_nack_queue"] + ")", function(result) {
+						bootbox.prompt("Set the new desired min NACK queue (a positive integer, currently " + settings["min_nack_queue"] + ")", function(result) {
 							if(isNaN(result)) {
-								bootbox.alert("Invalid max NACK queue (should be a positive integer)");
+								bootbox.alert("Invalid min NACK queue (should be a positive integer)");
 								return;
 							}
 							result = parseInt(result);
 							if(result < 0) {
-								bootbox.alert("Invalid max NACK queue (should be a positive integer)");
+								bootbox.alert("Invalid min NACK queue (should be a positive integer)");
 								return;
 							}
-							setMaxNackQueue(result);
+							setMinNackQueue(result);
 						});
 					});
 				} else if(k === 'no_media_timer') {
@@ -369,6 +369,22 @@ function updateSettings() {
 								return;
 							}
 							setNoMediaTimer(result);
+						});
+					});
+				} else if(k === 'slowlink_threshold') {
+					$('#'+k).append('<button id="' + k + '_button" type="button" class="btn btn-xs btn-primary">Edit slowlink-threshold value</button>');
+					$('#'+k + "_button").click(function() {
+						bootbox.prompt("Set the new desired slowlink-threshold value (in lost packets per seconds, currently " + settings["slowlink_threshold"] + ")", function(result) {
+							if(isNaN(result)) {
+								bootbox.alert("Invalid slowlink-threshold timer (should be a positive integer)");
+								return;
+							}
+							result = parseInt(result);
+							if(result < 0) {
+								bootbox.alert("Invalid slowlink-threshold timer (should be a positive integer)");
+								return;
+							}
+							setSlowlinkThreshold(result);
 						});
 					});
 				} else if(k === 'locking_debug') {
@@ -494,13 +510,18 @@ function setLibniceDebug(enable) {
 	sendSettingsRequest(request);
 }
 
-function setMaxNackQueue(queue) {
-	var request = { "janus": "set_max_nack_queue", "max_nack_queue": queue, "transaction": randomString(12), "admin_secret": secret };
+function setMinNackQueue(queue) {
+	var request = { "janus": "set_min_nack_queue", "min_nack_queue": queue, "transaction": randomString(12), "admin_secret": secret };
 	sendSettingsRequest(request);
 }
 
 function setNoMediaTimer(timer) {
 	var request = { "janus": "set_no_media_timer", "no_media_timer": timer, "transaction": randomString(12), "admin_secret": secret };
+	sendSettingsRequest(request);
+}
+
+function setSlowlinkThreshold(packets) {
+	var request = { "janus": "set_slowlink_threshold", "slowlink_threshold": packets, "transaction": randomString(12), "admin_secret": secret };
 	sendSettingsRequest(request);
 }
 

@@ -155,8 +155,9 @@ int janus_pp_webm_create(char *destination, char *metadata, gboolean vp8) {
 #endif
 	//~ fctx->timestamp = 0;
 	//~ if(url_fopen(&fctx->pb, fctx->filename, URL_WRONLY) < 0) {
-	if(avio_open(&fctx->pb, fctx->filename, AVIO_FLAG_WRITE) < 0) {
-		JANUS_LOG(LOG_ERR, "Error opening file for output\n");
+	int res = avio_open(&fctx->pb, fctx->filename, AVIO_FLAG_WRITE);
+	if(res < 0) {
+		JANUS_LOG(LOG_ERR, "Error opening file for output (%d)\n", res);
 		return -1;
 	}
 	//~ memset(&parameters, 0, sizeof(AVFormatParameters));
@@ -373,7 +374,7 @@ int janus_pp_webm_process(FILE *file, janus_pp_frame_packet *list, gboolean vp8,
 
 	int bytes = 0, numBytes = max_width*max_height*3;	/* FIXME */
 	uint8_t *received_frame = g_malloc0(numBytes);
-	uint8_t *buffer = g_malloc0(10000), *start = buffer;
+	uint8_t *buffer = g_malloc0(numBytes), *start = buffer;
 	int len = 0, frameLen = 0;
 	int keyFrame = 0;
 	gboolean keyframe_found = FALSE;
@@ -382,7 +383,7 @@ int janus_pp_webm_process(FILE *file, janus_pp_frame_packet *list, gboolean vp8,
 		keyFrame = 0;
 		frameLen = 0;
 		len = 0;
-		while(1) {
+		while(tmp != NULL) {
 			if(tmp->drop) {
 				/* Check if timestamp changes: marker bit is not mandatory, and may be lost as well */
 				if(tmp->next == NULL || tmp->next->ts > tmp->ts)
@@ -395,12 +396,16 @@ int janus_pp_webm_process(FILE *file, janus_pp_frame_packet *list, gboolean vp8,
 			fseek(file, tmp->offset+12+tmp->skip, SEEK_SET);
 			len = tmp->len-12-tmp->skip;
 			if(len < 1) {
+				if(tmp->next == NULL || tmp->next->ts > tmp->ts)
+					break;
 				tmp = tmp->next;
 				continue;
 			}
 			bytes = fread(buffer, sizeof(char), len, file);
 			if(bytes != len) {
 				JANUS_LOG(LOG_WARN, "Didn't manage to read all the bytes we needed (%d < %d)...\n", bytes, len);
+				if(tmp->next == NULL || tmp->next->ts > tmp->ts)
+					break;
 				tmp = tmp->next;
 				continue;
 			}
